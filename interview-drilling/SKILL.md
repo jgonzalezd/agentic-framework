@@ -74,6 +74,12 @@ The reader is a strong engineer coming from **Ruby and Java** — ground every P
 semantic in plain language and bridge from those languages where it clarifies; never assume
 Python-idiom fluency.
 
+Before writing one, read `~/.claude/skills/python-bootcamp/state/progress.md`. If the drill topic maps
+to a unit the bootcamp has already taught, deliver a ~200-word recap of the mechanism and the decision
+rule instead of a full refresher, and link the saved lesson at
+`~/.claude/skills/python-bootcamp/state/lessons/`. Teaching the same material twice wastes the
+session. If that file does not exist, write the full refresher.
+
 The user asked for this explicitly. It is not optional and it does not get skipped because the topic
 seems basic.
 
@@ -143,6 +149,17 @@ Finally, **MUST** append one row to `state/progress.md`:
 ```
 
 Create the file with that header row if it does not exist. Never rewrite existing rows.
+
+Then, for a `python` track drill, **MUST** append the blind spot to
+`~/.claude/skills/python-bootcamp/state/misconceptions.md` as a question that can be asked back:
+
+```
+| YYYY-MM-DD | unit-id | the question to ask again | what they believed |
+```
+
+Resolve `unit-id` against `~/.claude/skills/python-bootcamp/references/syllabus.md`; use `—` when no
+unit covers it. The bootcamp opens its next session on whatever is in that file, so a defect missed
+here becomes the next thing taught. Teach there. Test here.
 
 ## Difficulty calibration
 
