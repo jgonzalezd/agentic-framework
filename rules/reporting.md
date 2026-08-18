@@ -52,7 +52,7 @@ something the reader acts on.
    it a real verification.
 4. **Untested** — code paths not exercised, and what depends on them.
 5. **Decisions** — one entry each; see rule 1.
-6. **Open** — what needs the reader.
+6. **Open** — what needs the reader. Every entry follows rule 25.
 
 **Answer first, inside every section.** State the conclusion, then support it. This is the BLUF rule
 from US Army Regulation 25-50 and the Minto Pyramid Principle, and it is the opposite of how
@@ -475,6 +475,93 @@ Evidence with no consequence is not context. It is unfinished work handed to the
 
 **This is the other half of rule 9.** Rule 9 covers the input side: "~4.5× input tokens" of what, per
 what? Rule 24 covers the output side: what does this number change? Neither half implies the other.
+
+### 25. An open item is a decision briefing
+
+The failure this rule exists for. A report ended with this Open item:
+
+> metronome-core owes one choice, and it is now a choice between two known jobs. Write ~18
+> bindings for tests that already exist, which is mechanical and adds no coverage. Or write tests
+> for the ~6 specs at shipped with nothing asserting them, which is real work and is where the
+> actual risk is. They are independent — doing the second first is defensible.
+
+The reader could not tell, in their words, "what the issue is about, why it exist, the impact on
+the product, the blast radious". The item named two jobs in codebase shorthand and asked for a
+ranking. It gave the reader nothing to rank by.
+
+An Open item exists to get a decision from the reader. So each item is a briefing built for that
+decision, with this shape.
+
+**The heading is the decision phrased as a question.** The question must be answerable in one
+line: "Test the six unasserted specs first, or write the eighteen missing bindings first?" A topic
+label such as "Test coverage gap" does not qualify. The body below the heading exists so the
+reader can check the question before answering it. This is a carve-out from rule 12: an open
+decision has no finding yet, so the question stands where the finding would.
+
+**Six fields under the heading, in this order:**
+
+1. **What this is.** Every codebase name the item uses, defined in one sentence each on first use.
+   This applies rules 13 and 17 to Open items. A symbol the reader wrote gets its file path
+   instead of a definition, per rule 7. A reader who did not watch the session must be able to
+   parse the question after this field alone.
+2. **Why it's open.** Two halves, one sentence each. How the situation came to exist: imposed from
+   outside or chosen here, common or rare (rule 3). And why the call belongs to the reader rather
+   than the agent (rule 2).
+3. **Product impact.** What a user of the product, or the product itself, feels under each branch,
+   and what breaks silently if nothing is done. State it in the customer's terms, per the "How to
+   ask" section of `planning.md`.
+4. **Options.** One entry per option: what it costs in comparable units (rule 9), what it buys,
+   its blast radius by name (rule 6), and whether it is reversible. Both sides of every trade,
+   per rule 4.
+5. **If you don't decide.** The default that happens on its own: what stays broken, what stays
+   blocked, or "nothing; this can wait indefinitely." This field carries the urgency.
+6. **My call.** The agent's recommendation and its reason, labeled as the agent's opinion so the
+   reader knows it is theirs to overturn (rule 2). It ends with a reply token: a short string,
+   `1b`, standing for one answer to this item.
+
+**The recommendation is a deliberate carve-out from rule 4.** Rule 4 says do not pre-decide, and
+it still governs field 4: options are stated with both sides and no stated preference. Field 6
+then gives one labeled opinion, last, after both sides are on the page. The reader chose this,
+selecting "Recommendation + reasoning" when neutral-only items were offered; a briefing with no
+recommendation hands the ranking work back to them.
+
+**After the last item, the reply tokens are collected.** One line per item maps each token to its
+meaning; call this list the decision sheet. It lets a three-item Open section be answered with
+`1a, 2: tests first, 3 defer`.
+
+**A trivial item may compress fields 1 through 5 into two sentences.** Trivial means yes/no, low
+stakes, and reversible. The question, the impact, and the recommendation are never dropped. This
+keeps a small report from spending a page on a housekeeping item.
+
+The metronome-core item above, rewritten as a briefing:
+
+> ### 1. Test the six unasserted specs first, or write the eighteen missing bindings first?
+>
+> **What this is.** A binding is a comment line in a test file naming the spec it verifies; the
+> spec linter uses it to prove every `shipped` spec has tests. Two gaps exist. Eighteen tests run
+> and pass but carry no binding line. Six specs are marked `shipped` and no test asserts them.
+>
+> **Why it's open.** The binding convention arrived after those eighteen tests were written, and
+> the six specs were marked `shipped` before the linter enforced coverage. Both jobs are real and
+> independent, so the order is a call on your time and only you can make it.
+>
+> **Product impact.** The six unasserted specs cover [named behaviors]; a regression in any of
+> them ships without a test failing. The eighteen bindings change nothing a user can feel. Those
+> tests already run; only the linter's proof is missing.
+>
+> **Options.** (a) Bindings first: ~18 mechanical edits, ~1 focused hour, no new coverage,
+> reversible, touches only test files. (b) Spec tests first: real test-writing across [named
+> areas], roughly [estimate], closes the silent-regression window, reversible.
+>
+> **If you don't decide.** The linter stays red either way, and the six behaviors stay unwatched.
+>
+> **My call** (my opinion, yours to overturn): (b) first — the risk is in the untested specs;
+> the bindings are safe to defer. Reply `1b` to accept.
+
+The bracketed placeholders mark what the writing agent fills from the repo before the item ships.
+An item that keeps a placeholder has not been finished. A check that fails leaves the claim
+unverified, per rule 22. The item then says `unknown — needs <what>` and names who can settle it,
+per rule 23.
 
 ## Enforcement
 

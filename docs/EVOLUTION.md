@@ -33,6 +33,29 @@ omission from an oversight.
 
 ---
 
+## 2026-08-18 — an open item that names the work but not the decision cannot be decided
+
+**Change.** `rules/reporting.md` gains rule 25: every entry in a report's **Open** section is a
+decision briefing. The heading is the decision phrased as a question. Six fields follow: What this
+is, Why it's open, Product impact, Options, If you don't decide, My call. A decision sheet of
+reply tokens closes the section. The shape list's sixth item said "what needs the reader" and now
+adds "Every entry follows rule 25." A new command, `commands/briefing.md`, applies the rule to a
+report already in conversation, recomputing every number from the repo before rendering.
+
+**Evidence.** A metronome-core report ended with: "Write ~18 bindings for tests that already
+exist... Or write tests for the ~6 specs at shipped with nothing asserting them... doing the
+second first is defensible." The reader could not tell, in their words, "what the issue is about,
+why it exist, the impact on the product, the blast radious". The item cost a full clarification
+session that the six fields would have made unnecessary.
+
+**What was rejected.** A separate `rules/open-items.md`, which needs a new CLAUDE.md import line
+and a `wire.sh` change, and creates a second home for reporting rules. The trade of keeping it in
+`reporting.md` is that the file grows by one long rule. Also rejected: briefings without a
+recommendation. The reader chose "Recommendation + reasoning" explicitly, so rule 25 carves out
+rule 4's "do not pre-decide" for one labeled opinion, placed after both sides are on the page.
+
+---
+
 ## 2026-08-18 — a skill name that two projects both claim is not a name
 
 **Change.** The two colliding `orchestrator` skills were renamed for the input each one takes.
