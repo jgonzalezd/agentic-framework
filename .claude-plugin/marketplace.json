@@ -1,0 +1,13 @@
+{
+  "name": "jgonzalezd-agentic-framework",
+  "owner": {
+    "name": "Julian Gonzalez"
+  },
+  "plugins": [
+    {
+      "name": "agentic-framework",
+      "source": "./",
+      "description": "Shared reporting rules, planning rules, skills, commands, hooks and templates."
+    }
+  ]
+}

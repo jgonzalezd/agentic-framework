@@ -1,0 +1,9 @@
+{
+  "name": "agentic-framework",
+  "version": "0.1.0",
+  "description": "Shared reporting rules, planning rules, skills, commands, hooks and templates for every project on this machine.",
+  "author": {
+    "name": "Julian Gonzalez"
+  },
+  "homepage": "https://github.com/jgonzalezd/agentic-framework"
+}

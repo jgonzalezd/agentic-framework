@@ -1,0 +1,94 @@
+# EVOLUTION
+
+Dated log of process changes and the evidence behind each.
+
+## Why this file carries the whole record
+
+Every consumer of this repo is live on the working tree. There is no install step between saving a
+file here and an agent in another project reading it, so there is no release boundary to hang a
+changelog on. `plugin.json` still carries a version, but only so that a future machine which cannot
+share this disk gets a meaningful number from a plugin install. On this machine that number means
+nothing.
+
+So the discipline is: **write an entry here at the change, not at a release.** An entry names the
+change and the evidence that motivated it. A rule with no incident behind it is decoration.
+
+## The promotion policy
+
+An agent, command, or rule is promoted the first time a **second** project needs it. Not the first
+time it looks generic. The incident or case that motivated the promotion is logged beside it.
+
+Two things this policy is protecting against, in both directions:
+
+- **Promoting too early.** A rule written from one project's experience and promoted before a
+  second project needed it reaches sessions where it is false. The cost lands on a project that
+  never asked for it and cannot see where the rule came from.
+- **Promoting too late.** The rule stays in one project, the other project rediscovers the same
+  constraint the hard way, and the two write incompatible versions of it. That is the failure this
+  whole repository was created to end.
+
+`rules/RESIDUE.md` is the other half of the policy: it records what was deliberately **not**
+promoted, with the reason. Without it, a reader who cannot find a rule cannot tell a deliberate
+omission from an oversight.
+
+---
+
+## 2026-08-18 — the framework repo is created
+
+**Change.** The reporting rules, the planning rules, four skills, one command, one hook and four
+template sets moved out of two project repositories into this one. Three environments now consume
+one working tree by symlink and `@`-import.
+
+**Evidence.** The process lived per project, so an agent in one repo did not inherit the other's
+rules. A plan written in the metronome project used an analogy that the mmn project's reporting
+rules ban. Nothing in either repository would have caught it, because neither repository knew about
+the other's rules.
+
+**What was rejected.** A plugin install on each machine. It was rejected because all three
+environments sit on the same disk, so an install step would add a release boundary with nothing on
+the other side of it. The trade is that an unfinished edit here is live everywhere immediately, and
+that is accepted deliberately: one engineer, one session at a time. It would not be acceptable with
+a second person.
+
+---
+
+## 2026-08-16 — a check that did not answer is not a check that found nothing
+
+**Change.** Three writing rules were added to the reporting contract, along with a shell library
+that refuses an error reply, a test that blocks a merge, and a review performed by a subagent
+outside the session that wrote the artifact. The rules now in `rules/reporting.md`:
+
+- An error is not an empty result. A call that failed and a call that returned nothing are
+  different states, and the difference must survive into the report.
+- A claim written into a file carries the check that produced it: the date, the command or console
+  that answered, and the account or environment it was read on.
+- Evidence is reported with the decision it changes. A result that changes nothing is cut.
+
+**Evidence.** A session reported "no webhook endpoint is registered on the CI account" as a checked
+fact. The command behind it had returned a 403 permission error. The code counted the reply's `data`
+field, found it absent, defaulted to empty, and read zero. "Nobody is allowed to look" was recorded
+as "there is nothing there". The false claim reached three files before it was caught.
+
+The exit code did not catch it either: a restricted key's 403 exits 0, while an invalid key exits 1.
+
+**Why it is here rather than in one project.** The defect is in how a claim is checked and written
+down. Nothing about it is specific to one vendor or one codebase. The full account stays in that
+project's repository at `mms-repo/docs/2026-08-16-guardrails-handover.md`, because the account names
+accounts, board rows and commits that only exist there.
+
+---
+
+## Entry format
+
+```
+## YYYY-MM-DD — the finding, stated as a finding
+
+**Change.** What the rule, skill or template now says, and what it said before.
+
+**Evidence.** The incident, case or measurement. Name what it cost.
+
+**What was rejected.** The alternative, and what choosing against it traded.
+```
+
+An entry with no evidence section is not finished. If nothing went wrong and nothing was measured,
+the change is a preference, and a preference does not need a shared rule.
