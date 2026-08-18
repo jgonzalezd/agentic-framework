@@ -119,3 +119,31 @@ Adopting this engine changes one behavior in metronome-core: its old linter neve
 bindings at all, so specs at `in-progress`, `shipped` or `gated` that name no tests, name a test
 that does not exist, or name one that does not back-reference the spec, will start failing. That is
 the mmn rule being adopted, and it is the point of the merge.
+
+## `tests.mode` stays configurable, and both modes are permanent
+
+Decided 2026-08-18 by the engineer. The rejected alternative was to convert metronome-core's four
+`- Tests:` bullets into `### Tests` sections and then delete `bullet` mode, leaving one extraction
+path to maintain.
+
+**It was rejected because the format is not what fails.** Measured on metronome-core the same day:
+
+- 29 real specs. **Four** name tests at all. The other 25 name none, and 23 of those are `shipped`.
+- Six test files are named across those four specs. All six exist. **Two** back-reference their spec
+  by path; four do not.
+- One of the four, `skins.md`, carries a `- Tests:` bullet that names no test. It names two source
+  globs, `app/lib/skins/*` and `app/lib/state/SkinStore*`, and says they are unit-tested per a ship
+  checklist.
+
+Both extraction modes read the same paths out of the same four files, so converting the format
+changes no verdict. Every failure above comes from a missing back-reference, a bullet naming source
+files instead of tests, or a spec naming nothing at all.
+
+**The trade.** The engine carries two extraction paths permanently, about fifteen lines. What that
+buys is that adopting the engine costs a project zero edits to its existing specs, so the decision
+to adopt is separable from the decision to fix its test coverage. A project should not have to
+reformat thirty files to find out how many of them fail.
+
+**What metronome-core still owes, and what this file does not decide:** four back-references, a
+rewrite of `skins.md`'s bullet, and a decision about 23 shipped specs that name no tests. The last
+one is a question about test coverage, not about spec format.
