@@ -182,7 +182,14 @@ export function testPaths(raw, testsConfig) {
     const label = testsConfig.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const line = raw.match(new RegExp(`^\\s*-\\s+${label}(.*(?:\\n(?!\\s*[-#]).*)*)`, 'm'));
     if (!line) return [];
-    return [...line[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+    // Drop parenthesised asides before reading the backticks. A `Tests:` bullet routinely glosses
+    // each path — "`test/esInternalLinks.test.ts` (ES chrome/home emit real `/es/*` links)" — and
+    // a backticked token inside that gloss is prose, not a fourth test file. Section mode does not
+    // need this: its regex is anchored to `- ` at line start, so only a token that opens its own
+    // bullet counts. Measured on metronome-core 2026-08-18: without this, `/es/*` was reported as
+    // a named test that does not exist.
+    const prose = line[1].replace(/\([^)]*\)/g, ' ');
+    return [...prose.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
   }
   const body = sectionBody(raw, testsConfig.heading);
   if (body === undefined) return [];

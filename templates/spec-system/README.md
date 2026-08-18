@@ -103,7 +103,7 @@ non-empty Non-goals rule, and the ISO date check. Below is every value where the
 | `areas` | `library, dev-tooling, web-flow, prompts, evals` | `tempo, rhythm, sound, persistence, session, content, meta` |
 | `requiredFields` | `id, name, status, area, owner, last_reviewed, related_specs` | the same seven plus `introduced_version`, `success_metrics`, `related_events` |
 | `listFields` | `related_specs` | `success_metrics, related_events, related_specs` |
-| `requiredSections` | includes `### Tests` | no `### Tests`; includes `### Success metrics` |
+| `requiredSections` | includes `### Tests`; matches its own linter | no `### Tests`; includes `### Success metrics`. **Proposed, not current** — metronome-core's own linter checks no sections at all |
 | `tests.mode` | `section` — backticked paths bulleted under `### Tests` | `bullet` — one `- Tests:` line under Implementation pointers |
 | `crossReferences` | none | three: `introduced_version` against `app/lib/whatsNew/changelog.ts`, `success_metrics` against `product/metrics/metrics-map.md`, `related_events` against `trackEvent`/`trackOnce`/`sendEvent` calls under `app/` |
 | `staleWarning` | none | 90 days, for `shipped` and `gated`, waived by a mention in `product/learning/insights/` |
@@ -115,10 +115,11 @@ differently (`REQUIRED_FIELDS` against `REQUIRED`) and the lists were never comp
 **mmn-project's list is a strict subset of metronome-core's.** All seven mmn fields appear in
 metronome-core, which adds three more. No field is unique to mmn-project.
 
-Adopting this engine changes one behavior in metronome-core: its old linter never checked test
-bindings at all, so specs at `in-progress`, `shipped` or `gated` that name no tests, name a test
-that does not exist, or name one that does not back-reference the spec, will start failing. That is
-the mmn rule being adopted, and it is the point of the merge.
+Adopting this engine changes two behaviors in metronome-core. Its old linter never checked test
+bindings, so specs at `in-progress`, `shipped` or `gated` that name no tests, name a test that does
+not exist, or name one that does not back-reference the spec, will start failing. Its old linter
+also checked no sections, so `requiredSections` is new there too. Both are mmn rules being adopted,
+and adopting them is the point of the merge. The measured cost is in the next section.
 
 ## `tests.mode` stays configurable, and both modes are permanent
 
@@ -144,6 +145,59 @@ buys is that adopting the engine costs a project zero edits to its existing spec
 to adopt is separable from the decision to fix its test coverage. A project should not have to
 reformat thirty files to find out how many of them fail.
 
-**What metronome-core still owes, and what this file does not decide:** four back-references, a
-rewrite of `skins.md`'s bullet, and a decision about 23 shipped specs that name no tests. The last
-one is a question about test coverage, not about spec format.
+## Measured against both real spec trees, 2026-08-18
+
+The engine had never been pointed at a real `product/` tree until this date. Both runs used
+`spec-config.example.mjs` with only `root` overridden.
+
+**mmn-project: `✅ Verified 38 product specs`, exit 0.** That reproduces its own linter exactly, so
+the engine can replace `mms-repo/mmn-project/scripts/verify-specs.mjs` with no change in verdict.
+
+**metronome-core: 41 problems, exit 1**, against `✅ Verified 29 product specs (0 warnings)` from its
+own linter the same day. The gap is the whole point of the merge, and it decomposes into four
+groups, not one:
+
+| Problems | What they are | State |
+|---|---|---|
+| 1 | `/es/*` reported as a named test that does not exist | Engine defect, fixed below |
+| 5 | A named test file exists but does not back-reference its spec | Fixed 2026-08-18 |
+| 2 | `skins.md` named two source globs where tests belong | Fixed 2026-08-18 |
+| 24 | A spec at `shipped` or `gated` names no tests at all | Open, and it is a coverage question |
+| 9 | `color-palette-system.md` has none of the required sections | Open, see below |
+
+33 problems remain, and both remaining groups are the owner's call rather than tooling work.
+
+### The extractor defect this run found
+
+`bullet` mode read every backticked token on the `Tests:` bullet, including tokens inside a
+parenthetical gloss. `homepage-seo.md` writes:
+
+```
+- Tests: `test/homeJsonLd.test.ts` (WebSite node shape + canonical-agreeing URL per locale);
+  `test/esInternalLinks.test.ts` (ES chrome/home emit real `/es/*` links).
+```
+
+So `/es/*` was reported as a third named test that does not exist. `testPaths()` now strips
+parenthesised spans before reading the backticks. `section` mode never had the defect: its regex is
+anchored to `- ` at line start, so only a token opening its own bullet counts. mmn-project's run is
+byte-identical before and after the fix.
+
+### `color-palette-system.md`, and a config claim that was too strong
+
+`color-palette-system.md` carries spec frontmatter, sits in `product/specs/`, and is a design
+reference: OKLch constraints, palette families, validity rules. It has no WHAT & WHY structure at
+all. metronome-core's own linter never noticed, because **it has no required-sections check** — it
+validates frontmatter, the index, cross-references and staleness, and nothing about headings.
+
+The `metronomeCore` config here lists eight `requiredSections`. That list was written from
+mmn-project's, not read out of metronome-core's linter, so this README's own comparison table
+overstated what that project enforces today. The list is left strict, because adopting mmn's rules
+is what the merge is for. What changes is the claim: those eight sections are **proposed** for
+metronome-core, not a description of its current gate.
+
+Two ways to close it, and neither is tooling's decision. Restructure the file into a spec. Or move
+it out of `product/specs/` into a reference directory, where no spec rule reaches it.
+
+**What metronome-core still owes:** a decision about 24 specs at `shipped` or `gated` that name no
+tests, and a decision about `color-palette-system.md`. The first is a question about test coverage,
+not about spec format.
