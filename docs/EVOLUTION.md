@@ -33,6 +33,31 @@ omission from an oversight.
 
 ---
 
+## 2026-08-18 — a skill name that two projects both claim is not a name
+
+**Change.** The two colliding `orchestrator` skills were renamed for the input each one takes.
+`mms-repo/mmn-project/.claude/skills/orchestrator` is now `plan-orchestrator`; it reads a written
+plan file and shards it into work packages for domain-scoped subagents.
+`youtube-metronome/metronome-core/.claude/skills/orchestrator` is now `skill-orchestrator`; it takes
+a request and delegates it across that project's specialist skills, writing a new skill when one is
+missing. `project-skills.txt` holds both lines, where it previously held one and a comment
+explaining which skill was excluded and why.
+
+**Evidence.** The entry below records the collision and parked it, on the grounds that making the
+second skill global would need a rename first. Parking it left the manifest carrying a decision
+nobody could act on: metronome-core's orchestrator was reachable only from metronome-core, and the
+comment saying so was the only record. The names were also uninformative in both directions —
+neither said what its skill orchestrates, so the collision was not obvious from either name.
+
+**What was rejected.** Naming them for their project, `mmn-orchestrator` and
+`metronome-orchestrator`. It resolves the collision and reads as an address rather than a
+capability. A third project wanting plan execution would have to either reuse a name carrying
+another project's label or write a third copy. The trade is that the project a skill belongs to is
+no longer visible in its name, and `project-skills.txt` is now the only place that mapping is
+written down.
+
+---
+
 ## 2026-08-18 — a wiring step done by hand is a wiring step that is missed
 
 **Change.** `wire.sh` now links project-scoped skills as well as framework ones, from a committed

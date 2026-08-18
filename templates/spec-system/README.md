@@ -153,9 +153,10 @@ The engine had never been pointed at a real `product/` tree until this date. Bot
 **mmn-project: `✅ Verified 38 product specs`, exit 0.** That reproduces its own linter exactly, so
 the engine can replace `mms-repo/mmn-project/scripts/verify-specs.mjs` with no change in verdict.
 
-**metronome-core: 41 problems, exit 1**, against `✅ Verified 29 product specs (0 warnings)` from its
-own linter the same day. The gap is the whole point of the merge, and it decomposes into four
-groups, not one:
+**metronome-core: 41 problems on the first run, exit 1**, against `✅ Verified 29 product specs (0
+warnings)` from its own linter the same day. Read the two numbers as different units: the engine
+prints one line per problem and exits before the summary that would say how many specs it read. The
+gap is the whole point of the merge, and it decomposes into four groups, not one:
 
 | Problems | What they are | State |
 |---|---|---|
@@ -198,6 +199,36 @@ metronome-core, not a description of its current gate.
 Two ways to close it, and neither is tooling's decision. Restructure the file into a spec. Or move
 it out of `product/specs/` into a reference directory, where no spec rule reaches it.
 
-**What metronome-core still owes:** a decision about 24 specs at `shipped` or `gated` that name no
-tests, and a decision about `color-palette-system.md`. The first is a question about test coverage,
-not about spec format.
+### The 24 specs that name no tests are two different problems
+
+Measured 2026-08-18 by reading each spec's Implementation pointers and grepping `test/` for the
+modules it names. "24 specs are unbound" reads as one backlog and is two, with very different costs.
+
+**Roughly 18 have a test that already exercises the named implementation.** `tap-tempo.md` points at
+`app/lib/util/tapTempo`, and `test/tapTempo.test.ts` imports `computeTapBpm`,
+`weightedAverageInterval` and `shouldResetTapWindow` from exactly that module. The same holds for
+`master-volume` (`test/volume.test.ts`), `sound-style` (`test/SoundStyles.test.ts`),
+`settings-persistence` (`test/SettingsStore.test.ts`) and `practice-timer`
+(`test/practiceTimer.test.ts`). The work there is writing the `- Tests:` bullet and the
+back-reference comment. It adds no test coverage and it changes no behaviour.
+
+**Around 6 have no test at any level.** No test file imports `BlinkMode.tsx`, `ThemeToggle.tsx`,
+`WhatsNewCard.tsx`, `FeedbackForm.tsx` or `FeedbackSurvey.tsx`. The only grep hits are in
+`test/renderWithIntl.tsx`, which is a shared render helper and not a test. So `blink-mode`, `theme`,
+`whats-new-card` and `feedback-and-surveys` are at `shipped` with nothing asserting them.
+`transport-playback` is the ambiguous one: its scheduler half is covered by
+`test/MetronomeEngine.test.ts`, and its `handlePlay` half in the `Metronome.tsx` monolith is not.
+
+**Two already have a test pointing at them and the pointer is one-directional.**
+`test/seoDataQuality.test.ts` back-references `programmatic-pages.md`, and
+`test/floatingActionDockDesktopDefault.test.tsx` and `test/floatingDockScroll.test.ts` back-reference
+`support-tip-button.md`. Neither spec names them, so the engine still counts them unbound. That is
+the linter working as designed: it requires the spec to name the test, because a spec is the thing
+read when deciding whether behaviour is settled.
+
+**The counts are approximate and the split is not.** Module-name matching found the candidates;
+each binding still needs someone to read the spec's Behavior contract and decide whether that test
+settles it. What is exact is that the first group needs no new tests and the second group does.
+
+**What metronome-core still owes:** which of the two groups above to work, and a decision about
+`color-palette-system.md`.

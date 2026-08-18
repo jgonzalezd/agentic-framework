@@ -7,14 +7,19 @@
 # devcontainer, so every link is destroyed on a rebuild.
 #
 # wire.sh used to be given a directory sweep instead of this file. The dry run
-# on 2026-08-18 found why that is wrong: mms-repo/mmn-project and
-# youtube-metronome/metronome-core BOTH ship a skill named `orchestrator`, and
-# they are different files -- 278 lines against 370, each naming its own
-# project's workspace layout. A sweep links whichever it reaches last and says
-# nothing. Which one is global is a decision, so it is written down here.
+# on 2026-08-18 found why that is wrong: two projects each shipped a skill
+# named `orchestrator`, and they were different files -- 278 lines against 370.
+# A sweep links whichever it reaches last and says nothing. It also picked up
+# seven more metronome-core skills that nobody asked to make global. Discovery
+# guesses at intent; a list states it.
 #
-# It also picked up seven more metronome-core skills that nobody asked to make
-# global. Discovery guesses at intent; a list states it.
+# Both were renamed on 2026-08-18 for what actually distinguishes them, which
+# is the input each one takes, not the project each one sits in:
+#
+#   plan-orchestrator   takes a written plan file and shards it into work
+#                       packages for domain-scoped subagents.
+#   skill-orchestrator  takes a request and delegates it across specialist
+#                       skills, writing a new skill when one is missing.
 #
 # Format: one `name = absolute path` per line. Blank lines and `#` are ignored.
 # The name is what you type as /<name>, and it does not have to match the
@@ -25,15 +30,16 @@
 # file is committed, so a rebuild restores it and a laptop loss does not lose
 # the decision.
 
-orchestrator = /workspace/mms-repo/mmn-project/.claude/skills/orchestrator
+plan-orchestrator  = /workspace/mms-repo/mmn-project/.claude/skills/plan-orchestrator
+skill-orchestrator = /workspace/youtube-metronome/metronome-core/.claude/skills/skill-orchestrator
 
 # Not listed, on purpose:
 #
-#   metronome-core's own `orchestrator` -- collides with the line above. It
-#   still works inside metronome-core, because a session whose cwd is that
-#   project picks up its own .claude/skills locally. Making it global means
-#   renaming one of the two first.
-#
 #   metronome-core's ctr-optimizer, frontend-architect, liaison,
-#   marketing-strategist, nextjs-interview-coach, skill-coach, team-builder --
-#   project-scoped by design and already reachable from that project.
+#   marketing-strategist, skill-coach, team-builder -- project-scoped by
+#   design and already reachable from a session whose cwd is that project.
+#
+#   nextjs-interview-coach sits in metronome-core/.claude/skills/ and is not
+#   part of that project. It is untracked there, so git already treats it as
+#   something passing through. Where it belongs is the owner's call; until
+#   then it is not linked from here.

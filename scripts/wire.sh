@@ -96,14 +96,16 @@ for d in "$ROOT"/skills/*/; do link_skill "$d"; done
 # A project-scoped skill lives in <project>/.claude/skills/<name>, which is not
 # a discovery path. mmn-project's CLAUDE.md says to symlink one by hand in the
 # same turn you create it. That was done for the framework skills and missed for
-# `orchestrator`, which sat unlinked until 2026-08-18 -- it kept working only
-# because a session whose cwd is that project picks it up locally, so the gap is
-# invisible from inside the project that owns it and total from anywhere else.
+# mmn-project's plan orchestrator, which sat unlinked until 2026-08-18 -- it kept
+# working only because a session whose cwd is that project picks it up locally,
+# so the gap is invisible from inside the project that owns it and total from
+# anywhere else.
 #
 # The list is read from project-skills.txt rather than swept off disk. A sweep
-# was written first and its dry run found the reason not to: two projects ship a
-# skill named `orchestrator`, and a sweep links whichever it reaches last
-# without saying so. See the header of that file.
+# was written first and its dry run found the reason not to: two projects each
+# shipped a skill named `orchestrator`, and a sweep links whichever it reaches
+# last without saying so. Both were renamed for what they take as input --
+# plan-orchestrator and skill-orchestrator. See the header of that file.
 step "project skills from $MANIFEST"
 if [ -f "$MANIFEST" ]; then
   while IFS= read -r raw || [ -n "$raw" ]; do
