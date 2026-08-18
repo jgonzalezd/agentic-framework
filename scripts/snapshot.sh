@@ -48,13 +48,18 @@ say() { printf '  %s\n' "$*"; }
 mkdir -p "$DEST"/{plans,memory,settings,agents,skills-unrecorded,skills-mine}
 
 printf '\n== plans\n'
-if [ -d "$CLAUDE_HOME/plans" ]; then
-  rsync -a --delete "$CLAUDE_HOME/plans/" "$DEST/plans/" 2>/dev/null \
-    || cp -a "$CLAUDE_HOME/plans/." "$DEST/plans/"
-  say "$(find "$DEST/plans" -type f | wc -l) files"
+# Additive, never --delete. Plans are classified by project and most of them now
+# live in project repositories; only the ones belonging to no project stay here.
+# A mirroring copy would delete those the first time the global plans directory
+# came up empty, which is its normal state now that each project sets its own
+# plansDirectory.
+if [ -d "$CLAUDE_HOME/plans" ] && [ -n "$(ls -A "$CLAUDE_HOME/plans" 2>/dev/null)" ]; then
+  cp -a "$CLAUDE_HOME/plans/." "$DEST/plans/"
+  say "copied from $CLAUDE_HOME/plans"
 else
-  say "none"
+  say "global plans directory is empty; keeping what is already here"
 fi
+say "$(find "$DEST/plans" -type f | wc -l) files in the snapshot"
 
 printf '\n== auto-memory (projects/*/memory only)\n'
 n=0
