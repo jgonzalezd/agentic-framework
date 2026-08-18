@@ -33,6 +33,24 @@ omission from an oversight.
 
 ---
 
+## 2026-08-18 — a rename hook that fires while the file's session is alive breaks that session
+
+**Change.** `hooks/rename-plans.py` gains a grace period. A plan file modified within the last six
+hours is skipped and left out of the seen-state, so a later Stop renames it once the writing
+session has gone quiet. Before this, every unseen plan file was renamed on the very first Stop
+after it appeared, including the plan the still-running session had just created.
+
+**Evidence.** On 2026-08-18 the hook renamed the active session's plan at end of turn. The harness
+tracks a plan by its original path, so `/plan view` answered "no plan found" and a cold-context
+review subagent could not read the file it was pointed at. The user had to ask where the plan went.
+
+**What was rejected.** Identifying the owning session from the hook's stdin JSON, because the Stop
+payload carries no plan-file path, so ownership cannot be established without parsing transcripts.
+The trade of the grace period: a finished session's plan keeps its random slug for up to six hours,
+and a session idle longer than six hours can still be bitten. Reversible by changing one constant.
+
+---
+
 ## 2026-08-18 — an open item that names the work but not the decision cannot be decided
 
 **Change.** `rules/reporting.md` gains rule 25: every entry in a report's **Open** section is a

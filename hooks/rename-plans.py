@@ -5,14 +5,21 @@ mnemonic slug based on the plan's first `# ` heading.
 Runs as a Stop hook. It processes each plan file at most once: existing files are
 seeded into the state on first run so we never clobber names you already have, and
 each new plan gets renamed exactly once. Manual renames you do afterwards stick.
+
+A plan modified within GRACE_SECONDS is skipped and left out of the state, because
+the session that wrote it may still be running and the harness tracks the plan by
+its original path (/plan view breaks if it is renamed underneath). A later Stop,
+after the file has gone quiet, renames it.
 """
 import json
 import os
 import re
 import sys
+import time
 
 HOME = os.path.expanduser("~")
 STATE_FILE = os.path.join(HOME, ".claude", "plan-namer-state.json")
+GRACE_SECONDS = 6 * 3600
 
 # Plan directories to watch (absolute). Add more here if needed.
 PLAN_DIRS = [
@@ -73,6 +80,12 @@ def main() -> None:
             key = os.path.join(d, name)
             if key in seen:
                 continue  # already handled or seeded
+
+            try:
+                if time.time() - os.path.getmtime(key) < GRACE_SECONDS:
+                    continue  # possibly still in use by a live session; retry on a later Stop
+            except OSError:
+                continue
 
             heading = first_heading(key)
             slug = slugify(heading) if heading else ""
