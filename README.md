@@ -18,6 +18,7 @@ that the other project's reporting rules ban.
 | `skills/` | Skills that are true of more than one project: `technical-report`, `pm-status-report`, `stripe-ops`, `distill-learning`, `dev-loop`. |
 | `commands/spec.md` | The spec-authoring sequence. Paths and grounding sources come from each project's own config. |
 | `hooks/rename-plans.py` | Renames a new plan file from its random slug to one derived from its heading. Registered as a global Stop hook. |
+| `project-skills.txt` | Project-scoped skills that go on the global discovery path, one `name = path` per line. Written down rather than scanned off disk: two projects here ship different skills under the same name. |
 | `scripts/wire.sh` | Connects a machine's Claude overlay to this clone. Run after a rebuild, on a new machine, or after adding a skill. |
 | `scripts/snapshot.sh` | Copies the Claude overlay into `/workspace/.claude-state` so the umbrella repo pushes it off the machine. |
 | `templates/spec-system/` | One configurable spec linter, merged from two independent implementations, plus a spec skeleton. |

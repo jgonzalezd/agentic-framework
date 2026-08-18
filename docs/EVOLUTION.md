@@ -33,6 +33,31 @@ omission from an oversight.
 
 ---
 
+## 2026-08-18 — a wiring step done by hand is a wiring step that is missed
+
+**Change.** `wire.sh` now links project-scoped skills as well as framework ones, from a committed
+list at `project-skills.txt`. Before this, `mms-repo/CLAUDE.md` and `mmn-project/CLAUDE.md` both
+said to symlink a project skill by hand in the same turn you create it. Both now point at the
+manifest. `docs/INSTALL.md` gains the step as item 2.
+
+**Evidence.** `orchestrator` was documented as needing that hand-made symlink and never got one.
+`~/.claude/skills/orchestrator` did not exist on 2026-08-18, checked directly. It went unnoticed
+because a session whose working directory is the owning project reads that project's
+`.claude/skills/` on its own, so the skill worked in the one place its absence was cheapest and
+existed nowhere else. A hand-made symlink would not have survived anyway: `~/.claude` is not a host
+bind mount, so a container rebuild deletes every link.
+
+**What was rejected.** A directory sweep over `<workspace>/*/.claude/skills/*`, which needs no list
+and cannot go stale. Its dry run is why it was rejected. `mms-repo/mmn-project` and
+`youtube-metronome/metronome-core` both ship a skill named `orchestrator` — different files, 278
+lines against 370, each naming its own project's layout — and the sweep repointed the link to
+whichever it reached last, printing `repoint` and nothing else. It also pulled in seven
+metronome-core skills nobody had asked to make global. The trade: the manifest needs a line added
+when a skill is created, and a scan would not. What that buys is that a name collision is a written
+decision instead of an ordering accident.
+
+---
+
 ## 2026-08-18 — the framework repo is created
 
 **Change.** The reporting rules, the planning rules, four skills, one command, one hook and four

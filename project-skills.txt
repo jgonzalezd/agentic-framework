@@ -1,0 +1,39 @@
+# Project-scoped skills to put on the global discovery path.
+#
+# Why a recorded list and not a directory scan. Claude discovers skills from
+# ~/.claude/skills only. A project-scoped skill lives in
+# <project>/.claude/skills/<name>, so it is invisible from any other project
+# unless something links it. ~/.claude is not a host bind mount in the
+# devcontainer, so every link is destroyed on a rebuild.
+#
+# wire.sh used to be given a directory sweep instead of this file. The dry run
+# on 2026-08-18 found why that is wrong: mms-repo/mmn-project and
+# youtube-metronome/metronome-core BOTH ship a skill named `orchestrator`, and
+# they are different files -- 278 lines against 370, each naming its own
+# project's workspace layout. A sweep links whichever it reaches last and says
+# nothing. Which one is global is a decision, so it is written down here.
+#
+# It also picked up seven more metronome-core skills that nobody asked to make
+# global. Discovery guesses at intent; a list states it.
+#
+# Format: one `name = absolute path` per line. Blank lines and `#` are ignored.
+# The name is what you type as /<name>, and it does not have to match the
+# directory. Two lines claiming the same name is an error, not a race.
+#
+# Adding a project skill is still two steps, and that is deliberate: create it,
+# then add a line here. The difference from a hand-made symlink is that this
+# file is committed, so a rebuild restores it and a laptop loss does not lose
+# the decision.
+
+orchestrator = /workspace/mms-repo/mmn-project/.claude/skills/orchestrator
+
+# Not listed, on purpose:
+#
+#   metronome-core's own `orchestrator` -- collides with the line above. It
+#   still works inside metronome-core, because a session whose cwd is that
+#   project picks up its own .claude/skills locally. Making it global means
+#   renaming one of the two first.
+#
+#   metronome-core's ctr-optimizer, frontend-architect, liaison,
+#   marketing-strategist, nextjs-interview-coach, skill-coach, team-builder --
+#   project-scoped by design and already reachable from that project.

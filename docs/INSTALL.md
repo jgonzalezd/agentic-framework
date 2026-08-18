@@ -60,12 +60,18 @@ Then in its `postCreate.sh`:
 1. Symlinks each `skills/<name>` into `~/.claude/skills/`. Claude discovers skills from that
    directory only; a skill that is not linked there is invisible, and neither `/reload-skills` nor
    a new session fixes it.
-2. Symlinks each `commands/*.md` into `~/.claude/commands/`.
-3. Registers `hooks/rename-plans.py` in `~/.claude/settings.json` by absolute path. The hook reads
+2. Symlinks each project-scoped skill named in `project-skills.txt` into the same directory. A
+   project skill lives in `<project>/.claude/skills/<name>` and is reachable only from a session
+   whose working directory is that project, so it is invisible everywhere else until it is linked.
+   The list is written down rather than swept off disk, because two projects here ship different
+   skills under the same name (`orchestrator`) and a scan links whichever it reaches last without
+   saying so. `--project-skills <path>` points at a different list.
+3. Symlinks each `commands/*.md` into `~/.claude/commands/`.
+4. Registers `hooks/rename-plans.py` in `~/.claude/settings.json` by absolute path. The hook reads
    only `HOME` and the working directory, so it needs no plugin context.
-4. Appends an `@`-import block to `~/.claude/CLAUDE.md` pointing at `rules/reporting.md` and
+5. Appends an `@`-import block to `~/.claude/CLAUDE.md` pointing at `rules/reporting.md` and
    `rules/planning.md`, by absolute working-tree path.
-5. Fills gaps in `~/.claude/settings.json` from the rescue snapshot: model, effort level, theme,
+6. Fills gaps in `~/.claude/settings.json` from the rescue snapshot: model, effort level, theme,
    and the plugin enablements. It never overwrites a value that is already set.
 
 It is idempotent. Running it twice changes nothing the second time. `--dry-run` prints what it

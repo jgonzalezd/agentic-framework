@@ -22,6 +22,7 @@ set -euo pipefail
 ROOT=""
 STATE="/workspace/.claude-state"
 CLAUDE_HOME="${HOME}/.claude"
+MANIFEST=""
 DRY=0
 
 usage() {
@@ -31,6 +32,9 @@ Usage: wire.sh --root <path to this clone> [options]
   --root  <path>   Absolute path of the agentic-framework clone. Required.
   --state <path>   Rescue snapshot directory. Default: /workspace/.claude-state
   --home  <path>   Claude config directory. Default: $HOME/.claude
+  --project-skills <path>
+                   List of project-scoped skills to put on the global path.
+                   Default: <root>/project-skills.txt
   --dry-run        Print what would change and exit without changing it.
 USAGE
 }
@@ -40,6 +44,7 @@ while [ $# -gt 0 ]; do
     --root)    ROOT="${2:-}"; shift 2 ;;
     --state)   STATE="${2:-}"; shift 2 ;;
     --home)    CLAUDE_HOME="${2:-}"; shift 2 ;;
+    --project-skills) MANIFEST="${2:-}"; shift 2 ;;
     --dry-run) DRY=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "wire.sh: unknown argument '$1'" >&2; usage; exit 2 ;;
@@ -50,6 +55,8 @@ done
 [ -d "$ROOT/skills" ] || { echo "wire.sh: '$ROOT' is not an agentic-framework clone (no skills/)" >&2; exit 2; }
 ROOT="$(cd "$ROOT" && pwd)"
 
+[ -n "$MANIFEST" ] || MANIFEST="$ROOT/project-skills.txt"
+
 say()  { printf '  %s\n' "$*"; }
 step() { printf '\n== %s\n' "$*"; }
 run()  { if [ "$DRY" = 1 ]; then say "would: $*"; else "$@"; fi; }
@@ -59,15 +66,15 @@ run()  { if [ "$DRY" = 1 ]; then say "would: $*"; else "$@"; fi; }
 # a skill that exists in this repo and not there is invisible -- and neither a
 # new session nor /reload-skills fixes it, because the file genuinely is not on
 # the discovery path yet.
-step "skills -> $CLAUDE_HOME/skills"
-run mkdir -p "$CLAUDE_HOME/skills"
-for d in "$ROOT"/skills/*/; do
-  [ -d "$d" ] || continue
-  name="$(basename "$d")"
+link_skill() {
+  d="${1%/}"
+  [ -d "$d" ] || return 0
+  [ -f "$d/SKILL.md" ] || { say "skip     $(basename "$d") (no SKILL.md)"; return 0; }
+  name="${2:-$(basename "$d")}"
   target="$CLAUDE_HOME/skills/$name"
   if [ -L "$target" ]; then
     current="$(readlink "$target")"
-    if [ "$current" = "${d%/}" ]; then say "ok       $name"; continue; fi
+    if [ "$current" = "$d" ]; then say "ok       $name"; return 0; fi
     say "repoint  $name (was $current)"
     run rm "$target"
   elif [ -e "$target" ]; then
@@ -78,8 +85,40 @@ for d in "$ROOT"/skills/*/; do
   else
     say "link     $name"
   fi
-  run ln -s "${d%/}" "$target"
-done
+  run ln -s "$d" "$target"
+}
+
+step "skills -> $CLAUDE_HOME/skills"
+run mkdir -p "$CLAUDE_HOME/skills"
+for d in "$ROOT"/skills/*/; do link_skill "$d"; done
+
+# ------------------------------------------------------- 1b. project skills
+# A project-scoped skill lives in <project>/.claude/skills/<name>, which is not
+# a discovery path. mmn-project's CLAUDE.md says to symlink one by hand in the
+# same turn you create it. That was done for the framework skills and missed for
+# `orchestrator`, which sat unlinked until 2026-08-18 -- it kept working only
+# because a session whose cwd is that project picks it up locally, so the gap is
+# invisible from inside the project that owns it and total from anywhere else.
+#
+# The list is read from project-skills.txt rather than swept off disk. A sweep
+# was written first and its dry run found the reason not to: two projects ship a
+# skill named `orchestrator`, and a sweep links whichever it reaches last
+# without saying so. See the header of that file.
+step "project skills from $MANIFEST"
+if [ -f "$MANIFEST" ]; then
+  while IFS= read -r raw || [ -n "$raw" ]; do
+    line="${raw%%#*}"
+    line="$(printf '%s' "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [ -n "$line" ] || continue
+    case "$line" in *=*) ;; *) say "ignored  malformed line: $raw"; continue ;; esac
+    n="$(printf '%s' "${line%%=*}" | sed 's/[[:space:]]*$//')"
+    src="$(printf '%s' "${line#*=}" | sed 's/^[[:space:]]*//')"
+    if [ ! -d "$src" ]; then say "MISSING  $n -> $src (listed but not on disk)"; continue; fi
+    link_skill "$src" "$n"
+  done < "$MANIFEST"
+else
+  say "no manifest at $MANIFEST; no project skills linked"
+fi
 
 # -------------------------------------------------------------- 2. commands
 step "commands -> $CLAUDE_HOME/commands"
