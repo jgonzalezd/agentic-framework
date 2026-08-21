@@ -21,7 +21,7 @@ Backup for this consolidation: `/Users/main/Backups/consolidation-2026-08-21/`.
 | outperformer-code `.claude/` agents, commands, settings.local.json | `outperformer-code/.claude/` | Project-scoped, already committed | done |
 | 13 `.cursor/rules`, 8 `.cursor/agents`, 2 `.cursor/commands` | `outperformer-code/.cursor/` | Cursor-native formats, no Claude equivalent | done |
 | `landing-page/.claude/settings.local.json` | outperformer-code | Machine-local permissions | done |
-| The 4 unrecorded skills | `~/.claude/skills/` | `snapshot.sh` mechanism unchanged | done |
+| The 4 unrecorded skills | `.claude-state/skills-unrecorded/` | `snapshot.sh` mechanism unchanged. Checked 2026-08-21: only `find-skills` is live in `~/.claude/skills`; `45-stephenturner-skill-deslop`, `avoid-ai-writing` and `humanizer` exist only in the snapshot. `wire.sh` restores them once Phase 2 fixes the `--state` default, which today points at the container-only `/workspace/.claude-state` | done |
 | `find-skills` | `~/.agents/skills/` | Reinstallable from `~/.agents/.skill-lock.json` | done |
 | `plan-orchestrator` | `mms-repo/mmn-project/.claude/skills/` | Project-scoped, one project | done |
 | 7 metronome-core skills (`ctr-optimizer`, `frontend-architect`, `liaison`, `marketing-strategist`, `nextjs-interview-coach`, `skill-coach`, `team-builder`) | `youtube-metronome/metronome-core/.claude/skills/` | Named as deliberately unpromoted in the `project-skills.txt` comment header | done |
@@ -32,11 +32,11 @@ Backup for this consolidation: `/Users/main/Backups/consolidation-2026-08-21/`.
 
 | Asset | From | To | Status |
 | --- | --- | --- | --- |
-| 7 skills (`interview-drilling`, `landing-page-designer`, `onboarding-builder`, `pricing-strategist`, `product-describer`, `python-bootcamp`, `technical-blog-writer`) | `~/.claude/skills` (claude-skills repo) | `agentic-framework/skills/` | pending |
-| claude-skills README, .gitignore | same | folded into framework README and `.gitignore` | pending |
-| `_post.md` | `~/.claude/commands/` | `agentic-framework/commands/` | pending |
-| `block-icloud-writes.sh` | `~/.claude/hooks/` | `agentic-framework/hooks/` | pending |
-| `interview-drilling/state/` | `~/.claude/skills/` | framework working tree, gitignored | pending |
+| 7 skills (`interview-drilling`, `landing-page-designer`, `onboarding-builder`, `pricing-strategist`, `product-describer`, `python-bootcamp`, `technical-blog-writer`) | `~/.claude/skills` (claude-skills repo) | `agentic-framework/skills/` | done `f3bee83` |
+| claude-skills README, .gitignore | same | folded into framework README and `.gitignore` | done `f3bee83` |
+| `_post.md` | `~/.claude/commands/` | `agentic-framework/commands/` | done `03cae19` |
+| `block-icloud-writes.sh` | `~/.claude/hooks/` | `agentic-framework/hooks/` | done `03cae19` |
+| `interview-drilling/state/` | `~/.claude/skills/` | framework working tree, gitignored | done `03cae19` |
 
 ## Move in Phase 3 — dependency workflow and CookingApp
 

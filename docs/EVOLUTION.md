@@ -33,6 +33,56 @@ omission from an oversight.
 
 ---
 
+## 2026-08-21 — two skill repos meant two installers, and two environments got neither
+
+**Change.** The `claude-skills` repo is merged into this one by `git subtree`, so its seven skills
+now live at `skills/`: `interview-drilling`, `landing-page-designer`, `onboarding-builder`,
+`pricing-strategist`, `product-describer`, `python-bootcamp`, `technical-blog-writer`. Its README
+folded into this repo's README as a full skill table, and its `*/state/` ignore became
+`skills/*/state/`. `~/.claude/skills` was a clone of that repo; it is now a plain directory that
+`wire.sh` fills with symlinks. Two host-only assets moved in at the same time:
+`commands/_post.md` and `hooks/block-icloud-writes.sh`.
+
+**Evidence.** Skills reached the four environments through three unrelated channels. This repo
+wired 5 skills by symlink, the `claude-skills` clone owned 7 more, and `~/.agents/skills` owned
+`find-skills` and `koeficator`. The outperformer devcontainer persists `~/.claude` in a Docker
+named volume with no connection to either repo, so on 2026-08-21 that container had none of the
+shared skills, and the second Mac had nothing at all. `_post.md` and `block-icloud-writes.sh`
+existed only in `~/.claude` on this Mac, so no container and no second machine had the iCloud
+write protection that exists because of a real data-loss incident.
+
+**What was rejected.** Keeping two repos with unified wiring, which leaves two clone steps on every
+new machine. Merging in the other direction, which would have put the process rules inside a repo
+named for skills. Plugin distribution, rejected earlier and for the reason the README records: a
+plugin cache path embeds the version, so every bump breaks a rules import.
+
+**One thing the merge does not give you.** `git log --follow skills/<name>/SKILL.md` stops at the
+subtree commit. The pre-merge commits are reachable — `b37495e` is an ancestor of this history —
+but they record the file at its old path with no prefix, so `--follow` does not cross the graft.
+Walk the pre-merge history with `git log <pre-merge sha> -- <old path>`, for example
+`git log 511a2c6 -- interview-drilling/SKILL.md`.
+
+---
+
+## 2026-08-21 — one hook registrar could only ever register one hook
+
+**Change.** `scripts/wire.sh` section 3 becomes `register_hook (event, matcher, command,
+stale-key)` and is called twice. It registers `rename-plans.py` on `Stop` as before, and
+`block-icloud-writes.sh` on `PreToolUse` with matcher `.*`. Before this the event, the absence of
+a matcher, and the stale-registration key were all hardcoded into one Python heredoc.
+
+**Evidence.** Adopting `block-icloud-writes.sh` into the framework was blocked by the registrar's
+shape: there was nowhere to put a second hook without copying the whole block. The hook greps its
+stdin and exits 0 when no iCloud path appears, so registering it against every tool costs one grep
+per call and it is inert on any machine without iCloud Drive.
+
+**What was rejected.** Symlinking hooks into `~/.claude/hooks/` and registering by that path, which
+adds a layer that resolves differently per environment for no gain: both hooks read only stdin,
+`HOME` and cwd. The trade of matcher `.*`: the hook runs on reads and searches too, not only
+writes, in exchange for never missing a write tool that gets added later.
+
+---
+
 ## 2026-08-18 — a rename hook that fires while the file's session is alive breaks that session
 
 **Change.** `hooks/rename-plans.py` gains a grace period. A plan file modified within the last six
