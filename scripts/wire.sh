@@ -136,39 +136,60 @@ for f in "$ROOT"/commands/*.md; do
 done
 shopt -u nullglob
 
-# ------------------------------------------------------------------ 3. hook
-# Registered by absolute path, not by a symlink into ~/.claude/hooks. The hook
-# reads only HOME and cwd, so it needs no plugin context and no copy.
-step "Stop hook -> $CLAUDE_HOME/settings.json"
-HOOK="$ROOT/hooks/rename-plans.py"
-if [ ! -f "$HOOK" ]; then
-  say "SKIP: $HOOK not found"
-elif [ "$DRY" = 1 ]; then
-  say "would register: python3 \"$HOOK\""
-else
-  python3 - "$CLAUDE_HOME/settings.json" "$HOOK" <<'PY'
+# ----------------------------------------------------------------- 3. hooks
+# Registered by absolute path, not by a symlink into ~/.claude/hooks. Both hooks
+# read only stdin, HOME and cwd, so neither needs plugin context or a copy.
+#
+# register_hook takes (event, matcher, command, stale-key). The stale key is the
+# script's basename: a registration matching it at a different absolute path is
+# dropped, so moving the clone does not leave a hook pointing at a directory
+# that no longer exists. Pass an empty matcher for events that do not use one.
+register_hook() {
+  ev="$1"; matcher="$2"; cmd="$3"; key="$4"
+  if [ "$DRY" = 1 ]; then say "would register $ev: $cmd"; return 0; fi
+  python3 - "$CLAUDE_HOME/settings.json" "$ev" "$matcher" "$cmd" "$key" <<'PY'
 import json, os, sys
-path, hook = sys.argv[1], sys.argv[2]
-cmd = f'python3 "{hook}"'
+path, event, matcher, cmd, key = sys.argv[1:6]
 try:
     with open(path) as fh: s = json.load(fh)
 except (OSError, ValueError):
     s = {}
-groups = s.setdefault("hooks", {}).setdefault("Stop", [])
+groups = s.setdefault("hooks", {}).setdefault(event, [])
 for g in groups:
     for h in g.get("hooks", []):
-        if h.get("command") == cmd:
-            print("  ok       already registered"); sys.exit(0)
-# Drop a stale registration of the same script at a different path, so moving
-# the clone does not leave a hook pointing at a directory that no longer exists.
+        if h.get("command") == cmd and g.get("matcher", "") == matcher:
+            print(f"  ok       {key} already registered on {event}"); sys.exit(0)
 for g in groups:
-    g["hooks"] = [h for h in g.get("hooks", []) if "rename-plans.py" not in h.get("command", "")]
+    g["hooks"] = [h for h in g.get("hooks", []) if key not in h.get("command", "")]
 groups[:] = [g for g in groups if g.get("hooks")]
-groups.append({"hooks": [{"type": "command", "command": cmd}]})
+entry = {"hooks": [{"type": "command", "command": cmd}]}
+if matcher:
+    entry["matcher"] = matcher
+groups.append(entry)
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh: json.dump(s, fh, indent=2); fh.write("\n")
-print("  register rename-plans.py")
+print(f"  register {key} on {event}")
 PY
+}
+
+step "hooks -> $CLAUDE_HOME/settings.json"
+
+# Renames a new plan file from its random slug to one derived from its heading.
+HOOK="$ROOT/hooks/rename-plans.py"
+if [ -f "$HOOK" ]; then
+  register_hook Stop "" "python3 \"$HOOK\"" "rename-plans.py"
+else
+  say "SKIP: $HOOK not found"
+fi
+
+# Blocks agent writes to iCloud Drive outside Coding/. Exits 0 immediately on
+# any input that does not mention an iCloud path, so registering it on every
+# tool costs one grep per call and it is inert off macOS.
+ICLOUD_HOOK="$ROOT/hooks/block-icloud-writes.sh"
+if [ -f "$ICLOUD_HOOK" ]; then
+  register_hook PreToolUse ".*" "bash \"$ICLOUD_HOOK\"" "block-icloud-writes.sh"
+else
+  say "SKIP: $ICLOUD_HOOK not found"
 fi
 
 # -------------------------------------------------------------- 4. settings
