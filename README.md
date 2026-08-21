@@ -15,7 +15,7 @@ that the other project's reporting rules ban.
 | `rules/reporting.md` | The reporting contract. Governs end-of-turn summaries, subagent reports, plan files, PR and issue bodies, commit bodies. Imported into `~/.claude/CLAUDE.md`. |
 | `rules/planning.md` | The planning contract. The Assumptions block, the triggers that mean stop and ask, and how to ask. |
 | `rules/RESIDUE.md` | Every rule deliberately left behind in a project, with the reason. Read this before concluding a rule was lost. |
-| `skills/` | Skills that are true of more than one project: `technical-report`, `pm-status-report`, `stripe-ops`, `distill-learning`, `dev-loop`. |
+| `skills/` | Skills that are true of more than one project. Listed in full below. |
 | `commands/spec.md` | The spec-authoring sequence. Paths and grounding sources come from each project's own config. |
 | `hooks/rename-plans.py` | Renames a new plan file from its random slug to one derived from its heading. Registered as a global Stop hook. |
 | `project-skills.txt` | Project-scoped skills that go on the global discovery path, one `name = path` per line. Written down rather than scanned off disk: two projects here ship different skills under the same name. |
@@ -26,6 +26,34 @@ that the other project's reporting rules ban.
 | `templates/learning-loop/` | Postmortem, insight and pattern templates, and how the loop closes. |
 | `docs/INSTALL.md` | How a machine or container starts consuming this. |
 | `docs/EVOLUTION.md` | Dated log of process changes and the evidence behind each. |
+
+## The skills
+
+A skill is a directory holding `SKILL.md` with YAML frontmatter (`name`, `description`). Anything
+the skill loads conditionally lives under `references/`, so `SKILL.md` stays small. A `state/`
+directory is per-machine session state and is gitignored.
+
+| Skill | What it does |
+|---|---|
+| `dev-loop` | The build-test-report cycle a session runs inside a project. |
+| `distill-learning` | Routes a finished learning to a skill, a feedback memory, or a repo doc. The consolidation ritual between memory tiers. |
+| `pm-status-report` | Turns repo and board state into a status report for the owner. |
+| `stripe-ops` | Stripe operations: subscriptions, refunds, webhook checks. |
+| `technical-report` | The standalone technical report format from `rules/reporting.md`. |
+| `interview-drilling` | Interview prep by inversion: the skill writes realistic flawed code, the user critiques it, and the critique is graded against a defect ledger committed to disk beforehand. Tracks recurring blind spots across sessions. |
+| `landing-page-designer` | Turns a product and an audience into landing page copy and section structure, with a chosen tone and a measurement plan. |
+| `onboarding-builder` | Designs an app onboarding flow: archetype and paywall decision, screen-by-screen spec with draft copy, and a measurement plan. Content specs only, never code. |
+| `pricing-strategist` | Derives a value metric, packaging, tier ladder and price points from an evidence-tagged pattern library, or audits an existing pricing page down to final copy strings. |
+| `product-describer` | Writes product descriptions pitched at customers, recruiters, or investors, surfacing unknowns as bracketed tokens rather than inventing facts. |
+| `python-bootcamp` | An ordered Python curriculum for an engineer whose reflexes are Ruby and Java. 37 units across seven modules, one per session, each with a Ruby contrast and a from-scratch exercise. |
+| `technical-blog-writer` | Writes a technical blog post about something just built or debugged. Mines the repository first and builds a truth ledger, so every number and claim traces to a commit, a file, or a measured run. |
+
+The last seven arrived from the `claude-skills` repo, merged here on 2026-08-21 by `git subtree`
+so their history came with them.
+
+`find-skills` also appears in `~/.claude/skills/` but is a symlink into `~/.agents/skills/`, a
+separate unversioned location. It is not stored here: the link would record a path that resolves
+nowhere on another machine.
 
 ## How it is consumed
 

@@ -1,2 +1,6 @@
 .DS_Store
 node_modules/
+
+# Per-machine session state: drill progress, spoiler ledgers, generated lessons.
+# Local to each install; never shared.
+skills/*/state/

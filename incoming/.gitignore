@@ -1,9 +1,0 @@
-.DS_Store
-
-# Per-machine session state: drill progress, spoiler ledgers, generated lessons.
-# Local to each install; never shared.
-*/state/
-
-# Symlink into ~/.agents/skills/, which is a separate unversioned location.
-# Committing the link would store a path that resolves nowhere on another machine.
-find-skills
