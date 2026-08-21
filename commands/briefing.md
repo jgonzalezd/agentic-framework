@@ -6,9 +6,21 @@ argument-hint: [pasted items, or a pointer to a specific report — omit to use 
 You are rewriting the Open items of a report as decision briefings, so the reader can decide each
 one without reconstructing the session that produced it.
 
-The target format is rule 25 in `/workspace/agentic-framework/rules/reporting.md`: a question
-heading, six fields per item, a decision sheet at the end. Read that rule before writing anything.
-This command is the retrieval and verification sequence around it.
+The target format is rule 25 in the framework's `rules/reporting.md`: a question heading, six
+fields per item, a decision sheet at the end. Read that rule before writing anything. This command
+is the retrieval and verification sequence around it.
+
+Resolve the framework root rather than assuming a path. The clone sits at a different absolute
+path on the macOS host than inside a container, so a hardcoded path is right in one environment
+and wrong in the others:
+
+```sh
+readlink -f ~/.claude/commands/briefing.md    # .../agentic-framework/commands/briefing.md
+```
+
+Take the grandparent of that result as the framework root and read `rules/reporting.md` there. On
+macOS, `readlink -f` needs coreutils; `python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' ~/.claude/commands/briefing.md`
+works everywhere.
 
 ## Steps
 

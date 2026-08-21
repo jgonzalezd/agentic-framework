@@ -33,6 +33,33 @@ omission from an oversight.
 
 ---
 
+## 2026-08-21 — a committed absolute path is right in one environment and wrong in the rest
+
+**Change.** Nothing in the repo hardcodes an environment-specific absolute path any more.
+`project-skills.txt` entries use a `${WS}` token that `wire.sh` substitutes with the parent of
+`--root`, overridable with a new `--workspace` flag. `wire.sh --state` and `snapshot.sh --dest`
+both default to `<workspace>/.claude-state` instead of the constant `/workspace/.claude-state`;
+`snapshot.sh` derives it from `BASH_SOURCE`. `commands/briefing.md` resolved `rules/reporting.md`
+through the literal `/workspace/agentic-framework/`, and now resolves the framework root from its
+own symlink with `readlink -f ~/.claude/commands/briefing.md`.
+
+**Evidence.** Both `project-skills.txt` entries recorded container-only paths,
+`/workspace/mms-repo/...` and `/workspace/youtube-metronome/...`. On the host those repos live
+under `/Users/main/Git-Repos/CodeBases/JS-PSQL-Redis/`, so `wire.sh` reported both as MISSING and
+neither `plan-orchestrator` nor `skill-orchestrator` was ever linked on this Mac. The same constant
+sent `snapshot.sh` at a path that does not exist on the host, which is why `wire.sh`'s settings
+restore had been printing SKIP and three unrecorded skills sat in the snapshot unrestored. After
+the change both project skills resolve on the host and `snapshot.sh` writes into the existing
+`/Users/main/Git-Repos/CodeBases/JS-PSQL-Redis/.claude-state/`.
+
+**What was rejected.** A per-environment copy of `project-skills.txt`, which reintroduces the
+divergence this repo exists to end. Making `--root` imply the workspace with no override, rejected
+because the iOS Mac may clone the framework somewhere that is not beside its projects; `--workspace`
+covers that without a second file. The trade of `${WS}`: the manifest is no longer a list of paths
+you can paste into `ls`, in exchange for one committed file that resolves in every environment.
+
+---
+
 ## 2026-08-21 — two skill repos meant two installers, and two environments got neither
 
 **Change.** The `claude-skills` repo is merged into this one by `git subtree`, so its seven skills

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# snapshot.sh -- copy the Claude overlay into /workspace/.claude-state so the
+# snapshot.sh -- copy the Claude overlay into <workspace>/.claude-state so the
 # umbrella repo pushes it off the machine.
 #
 # Why this exists. ~/.claude and ~/.agents are not host bind mounts in this
@@ -16,7 +16,13 @@
 
 set -euo pipefail
 
-DEST="/workspace/.claude-state"
+# Default to the workspace beside this clone: the parent of the repo root, which
+# is /workspace in the JS devcontainer and
+# /Users/main/Git-Repos/CodeBases/JS-PSQL-Redis on the macOS host. It was the
+# literal /workspace until 2026-08-21, so running this on the host wrote into a
+# path that does not exist there.
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEST="$(dirname "$SELF")/.claude-state"
 CLAUDE_HOME="${HOME}/.claude"
 
 while [ $# -gt 0 ]; do
@@ -113,4 +119,4 @@ fi
 [ "$fail" = 0 ] || { echo; echo "snapshot.sh: refusing to report success with an exclusion violated" >&2; exit 1; }
 
 printf '\n== done: %s (%s)\n' "$DEST" "$(du -sh "$DEST" | cut -f1)"
-say "commit and push it from /workspace to put it off this machine"
+say "commit and push it from $(dirname "$DEST") to put it off this machine"

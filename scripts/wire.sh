@@ -20,9 +20,10 @@
 set -euo pipefail
 
 ROOT=""
-STATE="/workspace/.claude-state"
+STATE=""
 CLAUDE_HOME="${HOME}/.claude"
 MANIFEST=""
+WORKSPACE=""
 DRY=0
 
 usage() {
@@ -30,7 +31,10 @@ usage() {
 Usage: wire.sh --root <path to this clone> [options]
 
   --root  <path>   Absolute path of the agentic-framework clone. Required.
-  --state <path>   Rescue snapshot directory. Default: /workspace/.claude-state
+  --workspace <path>
+                   Directory holding the sibling project repos, substituted for
+                   ${WS} in project-skills.txt. Default: the parent of --root.
+  --state <path>   Rescue snapshot directory. Default: <workspace>/.claude-state
   --home  <path>   Claude config directory. Default: $HOME/.claude
   --project-skills <path>
                    List of project-scoped skills to put on the global path.
@@ -42,6 +46,7 @@ USAGE
 while [ $# -gt 0 ]; do
   case "$1" in
     --root)    ROOT="${2:-}"; shift 2 ;;
+    --workspace) WORKSPACE="${2:-}"; shift 2 ;;
     --state)   STATE="${2:-}"; shift 2 ;;
     --home)    CLAUDE_HOME="${2:-}"; shift 2 ;;
     --project-skills) MANIFEST="${2:-}"; shift 2 ;;
@@ -54,6 +59,14 @@ done
 [ -n "$ROOT" ] || { echo "wire.sh: --root is required" >&2; usage; exit 2; }
 [ -d "$ROOT/skills" ] || { echo "wire.sh: '$ROOT' is not an agentic-framework clone (no skills/)" >&2; exit 2; }
 ROOT="$(cd "$ROOT" && pwd)"
+
+# The clone sits beside the project repos it links skills from: /workspace in
+# the JS devcontainer, ~/Git-Repos/CodeBases/JS-PSQL-Redis on the macOS host.
+# Deriving the workspace from --root rather than hardcoding it is what lets one
+# committed project-skills.txt resolve in both. --workspace overrides it for a
+# layout where the clone does not sit beside its projects.
+[ -n "$WORKSPACE" ] || WORKSPACE="$(dirname "$ROOT")"
+[ -n "$STATE" ]     || STATE="$WORKSPACE/.claude-state"
 
 [ -n "$MANIFEST" ] || MANIFEST="$ROOT/project-skills.txt"
 
@@ -115,6 +128,7 @@ if [ -f "$MANIFEST" ]; then
     case "$line" in *=*) ;; *) say "ignored  malformed line: $raw"; continue ;; esac
     n="$(printf '%s' "${line%%=*}" | sed 's/[[:space:]]*$//')"
     src="$(printf '%s' "${line#*=}" | sed 's/^[[:space:]]*//')"
+    src="${src//\$\{WS\}/$WORKSPACE}"
     if [ ! -d "$src" ]; then say "MISSING  $n -> $src (listed but not on disk)"; continue; fi
     link_skill "$src" "$n"
   done < "$MANIFEST"
