@@ -19,6 +19,10 @@ that the other project's reporting rules ban.
 | `commands/spec.md` | The spec-authoring sequence. Paths and grounding sources come from each project's own config. |
 | `hooks/rename-plans.py` | Renames a new plan file from its random slug to one derived from its heading. Registered as a global Stop hook. |
 | `project-skills.txt` | Project-scoped skills that go on the global discovery path, one `name = path` per line. Written down rather than scanned off disk: two projects here ship different skills under the same name. |
+| `memory-map.txt` | Private repos whose auto-memory lives inside the repo, so it syncs through the project's own remote. One path per line. |
+| `hooks/memory-push.sh` | Commits and pushes the general memory clone at session end. Registered as a SessionEnd hook. |
+| `docs/CONSOLIDATION-2026-08.md` | The August 2026 inventory: one row per agent asset on this machine, with its disposition. |
+| `docs/INTAKE.md` | What to do with agent configuration found in a project this framework does not know about. The sweep command and the three dispositions. |
 | `scripts/wire.sh` | Connects a machine's Claude overlay to this clone. Run after a rebuild, on a new machine, or after adding a skill. |
 | `scripts/snapshot.sh` | Copies the Claude overlay into `/workspace/.claude-state` so the umbrella repo pushes it off the machine. |
 | `templates/spec-system/` | One configurable spec linter, merged from two independent implementations, plus a spec skeleton. |
@@ -57,9 +61,19 @@ nowhere on another machine.
 
 ## How it is consumed
 
-**A shared clone plus symlinks. Not a plugin install.** Three environments consume this repo: the
-macOS host running Claude natively, the JS devcontainer, and a Rails devcontainer. All three sit on
-the same disk, so all three point at one working tree.
+**A shared clone plus symlinks. Not a plugin install.** Four environments consume this repo. Three
+sit on the same disk and point at one working tree. The fourth is a second Mac and clones instead.
+
+| Environment | How it gets the clone | `wire.sh --root` |
+|---|---|---|
+| macOS host | the working tree itself | `~/Git-Repos/CodeBases/JS-PSQL-Redis/agentic-framework` |
+| JS devcontainer | bind mount of the host clone | `/workspace/agentic-framework` |
+| outperformer devcontainers | bind mount at `/opt`, run from `postCreateCommand.sh` | `/opt/agentic-framework` |
+| iOS Mac | `git clone`, synced by `git pull` | wherever it was cloned |
+
+`--workspace` is derived from the parent of `--root` and is what `${WS}` resolves to in
+`project-skills.txt` and `memory-map.txt`. An environment that does not hold a listed repo prints
+MISSING for it, which is the correct result there.
 
 Per payload type, because they are not wired the same way:
 
@@ -76,6 +90,35 @@ absolute path differs between the host and a container.
 
 **Never import a rules file by a plugin cache path.** Those paths embed the version, so every
 version bump silently breaks the import.
+
+## The project-level pattern: `.agents/skills/`
+
+A skill that only one project needs does not come here. It lives in that project, and the project
+decides which tools see it.
+
+When one repo is worked in both Claude and Cursor, the skills live once at `<repo>/.agents/skills/`
+and each tool reads them through a **relative** symlink: `<repo>/.claude/skills/<name>` and
+`<repo>/.cursor/skills/<name>`, both pointing at `../../.agents/skills/<name>`. Relative, so the
+links resolve wherever the repo is checked out, including inside a devcontainer.
+
+`outperformer-code` is the worked example. Before this, five skills sat where only Cursor saw them,
+one sat where neither tool looked, and one was gitignored.
+
+## Memory
+
+Two stores, both files in git, both using the official `autoMemoryDirectory` setting.
+
+**General memory** is what no single project owns. It lives in the private `agent-memory` repo, and
+`wire.sh` points a home-directory session's memory directory at that clone. `hooks/memory-push.sh`
+commits and pushes it at session end.
+
+**Project memory** lives inside the project's own repo at `<repo>/.claude/memory/`, so it syncs
+through that project's remote and a container that bind-mounts the repo reads the same files.
+`memory-map.txt` lists which repos are wired that way, and it is **private repos only**.
+
+`wire.sh` writes the setting into a repo's `.claude/settings.local.json` and never the committed
+`settings.json`, because the setting requires an absolute path and an absolute path is true on one
+machine only.
 
 ## Two consequences of the shared clone
 

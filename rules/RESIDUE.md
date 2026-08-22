@@ -85,3 +85,22 @@ Three things do not travel, and a project adopting these files should write its 
    project keeps its documentation tables and its release board.
 3. **The technical-report pointer.** Rule 12 splits by document type, and the longer version of the
    standalone-report half lives in a skill that this repo does not yet have.
+
+---
+
+# Not promoted in the August 2026 consolidation
+
+The consolidation of 2026-08-21 pulled every agent asset on this machine into one of three
+dispositions: promoted here, kept project-scoped and wired, or listed below. The full inventory
+with one row per asset is `docs/CONSOLIDATION-2026-08.md`.
+
+| Asset | Where it is | Why it stayed there |
+| --- | --- | --- |
+| `koeficator` | `~/.agents/skills/koeficator` | A host-local skill. No second project needs it, and it is not in the third-party lock file, so `snapshot.sh` is its only backup. Promoting it would put it on every environment's skill list to serve one. |
+| The 12 `.cursor/rules`, 8 `.cursor/agents`, 2 `.cursor/commands` in `outperformer-code`, and the equivalents in `outperformer-staging` | those repos | Cursor-native formats with no Claude equivalent. Skills were unified across the two tools because both read a skill directory; rules, agents and commands are not the same artifact in each tool. Revisit on a real duplication incident, not before. |
+| `nextjs-interview-coach` | `metronome-core/.claude/skills/` | Untracked in that repo, so git already treats it as passing through, and it is not part of that project. Where it belongs is the owner's call. |
+| The 7 project-scoped metronome-core skills: `ctr-optimizer`, `frontend-architect`, `liaison`, `marketing-strategist`, `skill-coach`, `team-builder`, and `nextjs-interview-coach` above | `metronome-core/.claude/skills/` | Named as deliberately unpromoted in the comment header of `project-skills.txt` since 2026-08-18. A session whose cwd is that project reaches them already. |
+| `mmn-project`'s `plan-orchestrator` | `mms-repo/mmn-project/.claude/skills/` | Project-scoped by content: it shards plans across that project's own package layout. It stays on the global discovery path through `project-skills.txt` rather than by promotion. |
+| The three Obsidian vaults' agent config: 27 agents, 117 commands, 18 skills | `ObsidianVaults/*/.claude/` and `OutperformerVault/.agents/` | Out of scope. The consolidation covered code repositories, and the vaults are a fourth surface with their own remotes. Recorded as row S-9 of the consolidation ledger and raised to the owner as a scope question. Not a judgement that they should stay. |
+| `CookingApp-code/.cursor/rules/design.mdc` | that repo | Cursor-native, and `.cursor` is gitignored there. Backed up on 2026-08-21 to `~/Backups/consolidation-2026-08-21/cookingapp-cursor/`. Committing it means changing that repo's gitignore policy, which is the owner's call. |
+| `outperformer-code`'s repo-resident memory activation | that repo | The repo tracks `.claude/settings.local.json`, so the absolute `autoMemoryDirectory` path `wire.sh` writes would be committed and would then be wrong inside its devcontainer and on the second Mac. Its rescued memory is committed at `.claude/memory/` and travels with the repo; only the live activation is missing. Untracking that file is the owner's call. |

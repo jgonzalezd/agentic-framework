@@ -173,10 +173,10 @@ shopt -u nullglob
 # that no longer exists. Pass an empty matcher for events that do not use one.
 register_hook() {
   ev="$1"; matcher="$2"; cmd="$3"; key="$4"
-  if [ "$DRY" = 1 ]; then say "would register $ev: $cmd"; return 0; fi
-  python3 - "$CLAUDE_HOME/settings.json" "$ev" "$matcher" "$cmd" "$key" <<'PY'
+  python3 - "$CLAUDE_HOME/settings.json" "$ev" "$matcher" "$cmd" "$key" "$DRY" <<'PY'
 import json, os, sys
 path, event, matcher, cmd, key = sys.argv[1:6]
+dry = sys.argv[6] == "1"
 try:
     with open(path) as fh: s = json.load(fh)
 except (OSError, ValueError):
@@ -186,6 +186,8 @@ for g in groups:
     for h in g.get("hooks", []):
         if h.get("command") == cmd and g.get("matcher", "") == matcher:
             print(f"  ok       {key} already registered on {event}"); sys.exit(0)
+if dry:
+    print(f"  would register {key} on {event}"); sys.exit(0)
 for g in groups:
     g["hooks"] = [h for h in g.get("hooks", []) if key not in h.get("command", "")]
 groups[:] = [g for g in groups if g.get("hooks")]

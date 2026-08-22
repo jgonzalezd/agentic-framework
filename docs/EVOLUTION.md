@@ -33,6 +33,87 @@ omission from an oversight.
 
 ---
 
+## 2026-08-21 — the same project worked from two machines had two memories, and neither saw the other
+
+**Change.** `scripts/wire.sh` gains two memory sections and `hooks/memory-push.sh` is new. The
+general store: a home-directory session's memory directory becomes a symlink into a clone of the
+new private `agent-memory` repo, and a `SessionEnd` hook commits and pushes that clone when it is
+dirty. Per-project memory: `memory-map.txt` lists private repos, and for each one `wire.sh` writes
+`autoMemoryDirectory` into that repo's `.claude/settings.local.json` pointing at
+`<repo>/.claude/memory/`, creating the directory and migrating any machine-local memory into it.
+
+**Evidence.** Auto memory is machine-local and keyed per project directory. The outperformer
+devcontainer's memory recorded a real policy — never deploy a feature branch to staging — and it
+was reachable only from inside that container. No host session and no other machine could see it,
+and it took a read-only mount of the Docker volume to get it out. Claude Code has no native
+cross-machine sync; `anthropics/claude-code` issue 56793 requests it and every published workaround
+syncs the files through git.
+
+**What was rejected.** The hosted memory layers, Mem0 and Zep and MemoryPlugin, and the
+claude-memsync daemon. All add infrastructure to a problem that a repo already solves, and the
+files stay greppable and importable into any of them later. Auto-committing project memory, because
+that interleaves agent commits with the engineer's own work in a project's history; project memory
+rides the normal commit flow instead, and the trade is that it reaches the other machine only when
+the project work does. A single central repo holding every project's memory, rejected because
+memory in the project repo travels with its branches, its remote and its container mount for free.
+
+**Private repos only.** Several repos on this account are public. Repo-resident memory in one of
+them publishes the agent's notes about the engineer, so `memory-map.txt` says private-only and the
+three listed were checked with `gh repo view` on 2026-08-21.
+
+---
+
+## 2026-08-21 — the dependency workflow existed as one project's file and two unwritten habits
+
+**Change.** `skills/safe-dependency-install/` is new and owns the whole third-party dependency
+workflow in three gates: identity, cost, then API. `CookingApp-code/.agent/ai-development-protocol.md`
+and the copies in `outperformer-code/.cursor/rules/` and `outperformer-staging/.cursor/rules/`
+become pointers to it.
+
+**Evidence.** Three things converged. The written half, the library-integration protocol, existed
+byte-identical in three repos, which is the promotion trigger twice over. The package-name
+verification habit existed only as something the engineer asked for in conversation and was written
+down nowhere. And the cost half was paid for on 2026-08-21: a `brew install` declared one
+dependency, pulled a 40-package closure, found several packages with no usable bottle because the
+machine's Command Line Tools were older than the bottles required, and printed "building from
+source" only after 535 MB had downloaded. The session noted the change and kept waiting, on sunk
+cost, while the fast path — an already-cached archive and a JDK already on the machine — was
+available throughout.
+
+**What was rejected.** Three separate skills, because the three checks fire on the same trigger and
+a split lets one of them be skipped. Leaving the protocol project-local, which is what produced
+three drifting copies. The trade of one skill: a longer file that loads whole.
+
+---
+
+## 2026-08-21 — one skill needed by two tools in one repo was copied and kept in step by hand
+
+**Change.** `outperformer-code/.agents/skills/` becomes the single tool-neutral source for that
+repo's skills, and `.claude/skills/` and `.cursor/skills/` are relative symlinks into it. The same
+pattern is documented in the README as the project-level convention.
+`landing-page/.claude/skills/seo-visibility-expert`, which was gitignored, is committed.
+`skill-orchestrator` is promoted here and metronome-core keeps a symlink.
+
+**Evidence.** That repo had four skill surfaces. Five skills sat in `.cursor/skills/` where only
+Cursor saw them; `tdd` sat in `.agents/skills/` where neither tool looked; `seo-visibility-expert`
+sat in a gitignored directory as the only copy on earth; and `landing-page/.claude/skills/orchestrator`
+was metronome-core's `skill-orchestrator` with one line changed, the `name:` field. After the
+change, a Claude session in that repo discovered all seven skills, including `tdd` and
+`seo-visibility-expert` for the first time.
+
+**What was rejected.** Retiring Cursor, which is still in use. Leaving Cursor as-is, which keeps the
+copy-and-sync. A pre-commit copy-sync from `.agents/skills/` to `.cursor/skills/`, held as the
+fallback if Cursor turns out not to follow the symlinks; the forum thread records project-level
+symlinks working from v2.4.21 and this Mac runs 3.12.10.
+
+**The promotion policy took a deliberate exception here.** The nine Expo skills were promoted from
+CookingApp-code although no second project needs them yet. The justification is not the second-project
+trigger. It is the owner's instruction to consolidate that project's skills, plus a load check: Claude
+Code discovers skills from `~/.claude/skills` and a project's `.claude/skills` only, CookingApp-code
+has no `.claude` directory, so nothing loaded them in Claude and only Cursor loaded them, in one repo.
+
+---
+
 ## 2026-08-21 — a committed absolute path is right in one environment and wrong in the rest
 
 **Change.** Nothing in the repo hardcodes an environment-specific absolute path any more.

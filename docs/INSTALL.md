@@ -55,6 +55,50 @@ Then in its `postCreate.sh`:
 
 `--root` differs per environment, which is why it is a required argument and not a constant.
 
+This is wired in `outperformer-code/.devcontainer/` and mirrored to `outperformer-staging` as of
+2026-08-21. Both mount the framework at the same target, so the symlinks that land in the shared
+`outperformer-claude-config` volume are valid in either container.
+
+### On a second Mac
+
+The second Mac cannot share this disk, so it clones instead of bind-mounting. Two commands:
+
+```sh
+git clone git@github.com:jgonzalezd/agentic-framework.git ~/Git-Repos/agentic-framework
+~/Git-Repos/agentic-framework/scripts/wire.sh --root ~/Git-Repos/agentic-framework
+```
+
+**MISSING is expected there.** `project-skills.txt` and `memory-map.txt` list repos that live on
+the other Mac. `wire.sh` prints MISSING for each one it cannot find, and that is the correct result,
+not a failure.
+
+**Add the general memory store**, so the memory written on either machine is one set:
+
+```sh
+git clone git@github.com:jgonzalezd/agent-memory.git ~/Git-Repos/agent-memory
+~/Git-Repos/agentic-framework/scripts/wire.sh --root ~/Git-Repos/agentic-framework \
+  --memory-repo ~/Git-Repos/agent-memory
+```
+
+`--memory-repo` defaults to the parent of the workspace plus `/agent-memory`; pass it explicitly if
+the clone is somewhere else.
+
+**What does not sync, and that is deliberate.** Credentials, session transcripts and the plugin
+payload stay per machine. Project memory arrives with each project clone. General memory arrives
+with the `agent-memory` clone.
+
+**The sync loop after the first install:**
+
+```sh
+git -C ~/Git-Repos/agentic-framework pull          # rules and command edits are live immediately
+~/Git-Repos/agentic-framework/scripts/wire.sh --root ~/Git-Repos/agentic-framework
+```
+
+The second line is only needed after a pull that adds a skill, a command or a hook. Linking is per
+item, so a new one is invisible until something links it. Re-running is idempotent.
+
+**Run the intake sweep there too.** That Mac holds projects this one does not. See `docs/INTAKE.md`.
+
 ### What wire.sh does
 
 1. Symlinks each `skills/<name>` into `~/.claude/skills/`. Claude discovers skills from that
