@@ -21,6 +21,11 @@
 #   skill-orchestrator  takes a request and delegates it across specialist
 #                       skills, writing a new skill when one is missing.
 #
+# skill-orchestrator was listed here until 2026-08-21. outperformer-code held a
+# copy differing only in its name: field, so it was promoted to skills/ and
+# metronome-core's path became a symlink to it. A promoted skill needs no line
+# here: wire.sh links everything under skills/ already.
+#
 # Format: one `name = path` per line. Blank lines and `#` are ignored. The name
 # is what you type as /<name>, and it does not have to match the directory. Two
 # lines claiming the same name is an error, not a race.
@@ -44,7 +49,6 @@
 # the decision.
 
 plan-orchestrator  = ${WS}/mms-repo/mmn-project/.claude/skills/plan-orchestrator
-skill-orchestrator = ${WS}/youtube-metronome/metronome-core/.claude/skills/skill-orchestrator
 
 # Not listed, on purpose:
 #

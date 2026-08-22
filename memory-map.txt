@@ -1,0 +1,33 @@
+# Repos that keep their auto-memory inside themselves.
+#
+# Auto memory is machine-local by default and keyed per project directory, so
+# the same project worked from two machines had two disjoint memories and
+# neither could see the other. Listing a repo here makes wire.sh point that
+# project's autoMemoryDirectory at <repo>/.claude/memory, so the memory syncs
+# through the project's own remote and a container that bind-mounts the repo
+# reads the same files with no extra wiring.
+#
+# Format: one repo path per line. ${WS} is the workspace, substituted the same
+# way as in project-skills.txt. Blank lines and `#` are ignored. MISSING is the
+# correct result in an environment that does not hold the repo.
+#
+# PRIVATE REPOS ONLY. Repo-resident memory in a public repo publishes the
+# agent's notes about the engineer, and several repos on this account are
+# public. Checked 2026-08-21 with `gh repo view`: the three below are private.
+# A public repo that needs synced memory gets a directory under agent-memory/
+# instead.
+#
+# wire.sh writes the setting into each repo's .claude/settings.local.json,
+# never the committed settings.json, because autoMemoryDirectory requires an
+# absolute path and an absolute path is true on one machine only.
+#
+# Not listed, and why:
+#
+#   outperformer-code tracks .claude/settings.local.json in git, so the
+#   absolute path wire.sh writes would be committed and would then be wrong
+#   inside its devcontainer and on the second Mac. Its rescued memory is
+#   already committed at .claude/memory/ and travels with the repo; only the
+#   live activation is missing. Untracking that file is the owner's call.
+
+${WS}/youtube-metronome/metronome-core
+${WS}/mms-repo/mmn-project

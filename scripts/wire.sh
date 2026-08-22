@@ -24,6 +24,8 @@ STATE=""
 CLAUDE_HOME="${HOME}/.claude"
 MANIFEST=""
 WORKSPACE=""
+MEMORY_REPO=""
+MEMORY_MAP=""
 DRY=0
 
 usage() {
@@ -39,6 +41,13 @@ Usage: wire.sh --root <path to this clone> [options]
   --project-skills <path>
                    List of project-scoped skills to put on the global path.
                    Default: <root>/project-skills.txt
+  --memory-repo <path>
+                   Clone of the agent-memory repo holding the general memory
+                   store. Default: <workspace>/../agent-memory. Skipped when
+                   absent.
+  --memory-map <path>
+                   Repos that keep their memory inside themselves.
+                   Default: <root>/memory-map.txt
   --dry-run        Print what would change and exit without changing it.
 USAGE
 }
@@ -50,6 +59,8 @@ while [ $# -gt 0 ]; do
     --state)   STATE="${2:-}"; shift 2 ;;
     --home)    CLAUDE_HOME="${2:-}"; shift 2 ;;
     --project-skills) MANIFEST="${2:-}"; shift 2 ;;
+    --memory-repo) MEMORY_REPO="${2:-}"; shift 2 ;;
+    --memory-map)  MEMORY_MAP="${2:-}"; shift 2 ;;
     --dry-run) DRY=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "wire.sh: unknown argument '$1'" >&2; usage; exit 2 ;;
@@ -68,7 +79,9 @@ ROOT="$(cd "$ROOT" && pwd)"
 [ -n "$WORKSPACE" ] || WORKSPACE="$(dirname "$ROOT")"
 [ -n "$STATE" ]     || STATE="$WORKSPACE/.claude-state"
 
-[ -n "$MANIFEST" ] || MANIFEST="$ROOT/project-skills.txt"
+[ -n "$MANIFEST" ]    || MANIFEST="$ROOT/project-skills.txt"
+[ -n "$MEMORY_MAP" ]  || MEMORY_MAP="$ROOT/memory-map.txt"
+[ -n "$MEMORY_REPO" ] || MEMORY_REPO="$(dirname "$WORKSPACE")/agent-memory"
 
 say()  { printf '  %s\n' "$*"; }
 step() { printf '\n== %s\n' "$*"; }
@@ -283,6 +296,117 @@ elif grep -qF "$MARK" "$CLAUDE_HOME/CLAUDE.md" 2>/dev/null; then
 else
   printf '\n%s\n' "$BLOCK" >> "$CLAUDE_HOME/CLAUDE.md"
   say "appended import block"
+fi
+
+# -------------------------------------------------------- 6. general memory
+# Auto memory is machine-local and keyed per project directory, so the same
+# work done on two machines produced two disjoint memories and neither could
+# see the other. Claude Code has no cross-machine sync (anthropics/claude-code
+# issue 56793), so the sync channel is git, like everything else here.
+#
+# A session started in the home directory reads from
+# ~/.claude/projects/<home key>/memory. Replacing that directory with a symlink
+# into the agent-memory clone makes the general store a git working tree. The
+# key is derived from $HOME per machine, so this works unchanged on the second
+# Mac, where $HOME is a different path.
+step "general memory -> $MEMORY_REPO/general"
+HOME_KEY="$(printf '%s' "$HOME" | sed 's|/|-|g')"
+MEM_LINK="$CLAUDE_HOME/projects/$HOME_KEY/memory"
+if [ ! -d "$MEMORY_REPO/general" ]; then
+  say "SKIP: no agent-memory clone at $MEMORY_REPO (pass --memory-repo, or clone it)"
+elif [ "$DRY" = 1 ]; then
+  say "would point $MEM_LINK at $MEMORY_REPO/general"
+  say "would run git pull --rebase --autostash in $MEMORY_REPO"
+else
+  # Pull first: a stale clone would otherwise be what the session reads.
+  # --autostash so an unpushed memory written before the last session ended
+  # does not block the pull. Offline, this fails and the local files are used.
+  git -C "$MEMORY_REPO" pull --rebase --autostash --quiet 2>/dev/null \
+    && say "pulled   $MEMORY_REPO" \
+    || say "WARN: could not pull $MEMORY_REPO (offline?); using the local clone"
+  if [ -L "$MEM_LINK" ] && [ "$(readlink "$MEM_LINK")" = "$MEMORY_REPO/general" ]; then
+    say "ok       general memory already linked"
+  else
+    mkdir -p "$(dirname "$MEM_LINK")"
+    if [ -d "$MEM_LINK" ] && [ ! -L "$MEM_LINK" ]; then
+      # Copy without overwrite: the clone is authoritative for any name that
+      # exists in both, because it is the side the other machine has seen.
+      migrated=0
+      for f in "$MEM_LINK"/*; do
+        [ -e "$f" ] || continue
+        b="$(basename "$f")"
+        [ -e "$MEMORY_REPO/general/$b" ] || { cp -a "$f" "$MEMORY_REPO/general/$b"; migrated=$((migrated+1)); }
+      done
+      [ "$migrated" -gt 0 ] && say "migrated $migrated file(s) into the clone"
+      mv "$MEM_LINK" "$MEM_LINK.pre-wire"
+      say "displace memory -> memory.pre-wire"
+    elif [ -e "$MEM_LINK" ]; then
+      mv "$MEM_LINK" "$MEM_LINK.pre-wire"
+    fi
+    ln -s "$MEMORY_REPO/general" "$MEM_LINK"
+    say "link     general memory"
+  fi
+fi
+
+# Session-end push for the general store only. Project memory is deliberately
+# not auto-committed: it would interleave agent commits with the engineer's own
+# work in a project's history.
+PUSH_HOOK="$ROOT/hooks/memory-push.sh"
+if [ -f "$PUSH_HOOK" ] && [ -d "$MEMORY_REPO/general" ]; then
+  register_hook SessionEnd "" "bash \"$PUSH_HOOK\" \"$MEMORY_REPO\"" "memory-push.sh"
+fi
+
+# -------------------------------------------------------- 7. project memory
+# A project's memory belongs in the project's repo: it then travels with the
+# branches, the remote and the container bind mount, with no second sync
+# mechanism. autoMemoryDirectory relocates the directory and is read from any
+# settings scope. The docs require an absolute path, and an absolute path is
+# true on one machine only, so it goes in settings.local.json and never in the
+# committed settings.json.
+#
+# Private repos only. Repo-resident memory in a public repo publishes the
+# agent's notes about the engineer.
+step "project memory from $MEMORY_MAP"
+if [ ! -f "$MEMORY_MAP" ]; then
+  say "no map at $MEMORY_MAP; no project memory wired"
+else
+  while IFS= read -r raw || [ -n "$raw" ]; do
+    line="${raw%%#*}"
+    line="$(printf '%s' "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [ -n "$line" ] || continue
+    repo="${line//\$\{WS\}/$WORKSPACE}"
+    n="$(basename "$repo")"
+    if [ ! -d "$repo/.git" ]; then say "MISSING  $n -> $repo (not a repo here)"; continue; fi
+    if [ "$DRY" = 1 ]; then say "would wire memory for $n"; continue; fi
+    mkdir -p "$repo/.claude/memory"
+    python3 - "$repo" <<'PY'
+import json, os, sys
+repo = sys.argv[1]
+path = os.path.join(repo, ".claude", "settings.local.json")
+want = os.path.join(repo, ".claude", "memory")
+try:
+    with open(path) as fh: s = json.load(fh)
+except (OSError, ValueError):
+    s = {}
+if s.get("autoMemoryDirectory") == want:
+    print(f"  ok       {os.path.basename(repo)} already wired"); sys.exit(0)
+s["autoMemoryDirectory"] = want
+with open(path, "w") as fh: json.dump(s, fh, indent=2); fh.write("\n")
+print(f"  wired    {os.path.basename(repo)} -> .claude/memory")
+PY
+    # Migrate whatever machine-local memory this project already accumulated.
+    key="$(printf '%s' "$repo" | sed 's|/|-|g')"
+    old="$CLAUDE_HOME/projects/$key/memory"
+    if [ -d "$old" ]; then
+      moved=0
+      for f in "$old"/*; do
+        [ -e "$f" ] || continue
+        b="$(basename "$f")"
+        [ -e "$repo/.claude/memory/$b" ] || { cp -a "$f" "$repo/.claude/memory/$b"; moved=$((moved+1)); }
+      done
+      [ "$moved" -gt 0 ] && say "migrated $moved file(s) from $old"
+    fi
+  done < "$MEMORY_MAP"
 fi
 
 printf '\n== done\n'
